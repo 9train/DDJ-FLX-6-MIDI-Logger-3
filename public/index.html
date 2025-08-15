@@ -68,7 +68,8 @@
     /****************************************************************
      * 2) Single global entrypoint (wrappers, recorder, jog, etc. hook here)
      ****************************************************************/
-    window.consumeInfo = (info) => boardConsume(info);
+    const baseConsume = (info) => boardConsume(info);
+    window.consumeInfo = baseConsume;
 
     /****************************************************************
      * 3) Recorder BEFORE WS/WebMIDI to capture earliest events
@@ -91,24 +92,23 @@
     const qs    = new URLSearchParams(location.search);
     const host  = location.hostname || 'localhost';
     const wsURL = qs.get('ws') || `ws://${host}:` + (qs.get('wsport') || '8787');
-
-    connectWS(
-      wsURL,
-      (info) => window.consumeInfo(info),
-      (st)   => { setWSStatus(st); mirrorLegacy(); }
-    );
-
+    const role  = qs.get('role') === 'viewer' ? 'viewer' : 'host';
+    
     /****************************************************************
      * 6) WebMIDI — single, stable init (object signature)
      *    NOTE: do not duplicate this call anywhere else.
      ****************************************************************/
     const preferred = qs.get('midi') || 'DDJ-FLX6'; // override with ?midi=DeviceName
-    await initWebMIDI({
-      onInfo: (info) => window.consumeInfo(info),
-      preferredInput: preferred,
-      onStatus: (s) => setMIDIStatus(s),
-      log: qs.has('logmidi')
-    });
+   if (role === 'host') {
+      await initWebMIDI({
+        onInfo: (info) => window.consumeInfo(info),
+        preferredInput: preferred,
+        onStatus: (s) => setMIDIStatus(s),
+        log: qs.has('logmidi')
+      });
+    } else {
+      setMIDIStatus('viewer');
+    }
 
     /****************************************************************
      * 7) Toolbar controls (Fit / Fill / BG) + Recorder buttons
