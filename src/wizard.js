@@ -151,6 +151,7 @@ let PANEL = null;
 let CURRENT_TARGET = null;
 let LISTENING = false;
 let AUTO_REPLACE = true;
+let SENS_INPUT = null;
 
 // Link-across-modes capture + filters
 let FAMILY_ACTIVE = false;
@@ -239,6 +240,13 @@ function renderList(svg, mount) {
       highlightTarget(svg, id, true);
       resetFamilyCapture();
       updateCurrentLabel();
+      try {
+        if (SENS_INPUT) {
+          const mm = getUnifiedMap?.() || [];
+          const hit = mm.find(m => m.target === CURRENT_TARGET && m.sensitivity != null);
+          SENS_INPUT.value = hit ? String(hit.sensitivity) : '1';
+        }
+      } catch {}
     });
     list.appendChild(item);
   }
@@ -281,6 +289,11 @@ function buildPanel(svg) {
       <button id="wizUseExact">Use</button>
     </div>
 
+<div class="wiz-row">
+      <label class="wiz-mini" title="Scale raw 0-127 values">Sensitivity:</label>
+      <input id="wizSens" type="number" step="0.1" value="1" style="width:60px;" />
+    </div>
+    
     <div class="wiz-row">
       <details open>
         <summary><strong>Link Across Modes</strong> (same physical pad in HOT CUE / PAD FX / etc.)</summary>
@@ -352,6 +365,7 @@ function buildPanel(svg) {
   const btnNext   = wrap.querySelector('#wizNext');
   const chkAuto   = wrap.querySelector('#wizAuto');
   const stat      = wrap.querySelector('#wizStatus');
+  SENS_INPUT = wrap.querySelector('#wizSens');
 
   chkAuto.addEventListener('change', () => { AUTO_REPLACE = chkAuto.checked; });
 
@@ -558,6 +572,16 @@ function onLearn(info, svg) {
   const key = makeKey(info);
   const unified = getUnifiedMap?.() || [];
   const prev = unified.find(m => (m.key === key));
+let sens = 1;
+  if (SENS_INPUT) {
+    const parsed = parseFloat(SENS_INPUT.value);
+    if (parsed > 0) {
+      sens = parsed;
+    } else {
+      alert('Sensitivity must be a positive number.');
+      SENS_INPUT.value = '1';
+    }
+  }
 
   // If previous exists and has same target → quiet success (idempotent)
   if (prev && prev.target === CURRENT_TARGET) {
@@ -568,19 +592,19 @@ function onLearn(info, svg) {
   // If previous exists and target differs
   if (prev && prev.target !== CURRENT_TARGET) {
     if (AUTO_REPLACE) {
-      upsertLearned({ key, target: CURRENT_TARGET, name: CURRENT_TARGET, type: info.type, ch: info.ch, code: (info.controller ?? info.d1) });
+      upsertLearned({ key, target: CURRENT_TARGET, name: CURRENT_TARGET, type: info.type, ch: info.ch, code: (info.controller ?? info.d1), sensitivity: sens });
       toast(`Replaced: ${key}\n${prev.target} → ${CURRENT_TARGET}`);
     } else {
       const ok = confirm(
         `Duplicate MIDI key:\n${key}\n\nAlready mapped to: ${prev.target}\nNew target: ${CURRENT_TARGET}\n\nReplace it?`
       );
       if (!ok) return;
-      upsertLearned({ key, target: CURRENT_TARGET, name: CURRENT_TARGET, type: info.type, ch: info.ch, code: (info.controller ?? info.d1) });
+     upsertLearned({ key, target: CURRENT_TARGET, name: CURRENT_TARGET, type: info.type, ch: info.ch, code: (info.controller ?? info.d1), sensitivity: sens });
       toast(`Replaced: ${key}\n${prev.target} → ${CURRENT_TARGET}`);
     }
   } else {
     // brand new
-    upsertLearned({ key, target: CURRENT_TARGET, name: CURRENT_TARGET, type: info.type, ch: info.ch, code: (info.controller ?? info.d1) });
+    upsertLearned({ key, target: CURRENT_TARGET, name: CURRENT_TARGET, type: info.type, ch: info.ch, code: (info.controller ?? info.d1), sensitivity: sens });
     toast(`Mapped: ${key} → ${CURRENT_TARGET}`);
   }
 
