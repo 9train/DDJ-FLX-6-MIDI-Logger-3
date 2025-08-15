@@ -42,7 +42,8 @@ function getElByAnyId(id){ return getElByAnyIdIn(svgRoot, id); }
 /* -------------------------
    Jog helpers
 --------------------------*/
-function decodeRelative7(v){
+// PATCH 1: export decodeRelative7 so other modules can import it.
+export function decodeRelative7(v){
   // Typical relative 7-bit: 1..63 = +steps, 65..127 = -steps, 0/64 = no move
   if (v === 0 || v === 64) return 0;
   return (v > 64) ? (v - 128) : v;
@@ -336,8 +337,9 @@ function animateContinuous(el, entry, value){
   lastCCValue[entry.target] = value;
   const id = (entry.target || '').toLowerCase();
 
-  const isVertSlider = /^slider_ch[1-4]$/.test(id) || /^slider_tempo_(l|r)$/.test(id);
-  const isXfader     = /^(xfader(_slider)?|crossfader)$/.test(id);
+  // PATCH 2: make selector regexes case-insensitive to match IDs consistently.
+  const isVertSlider = /^slider_ch[1-4]$/i.test(id) || /^slider_tempo_(l|r)$/i.test(id);
+  const isXfader     = /^(xfader(_slider)?|crossfader)$/i.test(id);
 
   // Vertical sliders/faders (BOTTOM = 0, TOP = 127)
   if (isVertSlider && el.hasAttribute('y')) {
