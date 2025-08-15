@@ -7,7 +7,8 @@
     "start": "node server/server.js",
     "dev": "NODE_ENV=development node server/server.js",
     "list-hid": "node -e \"console.table(require('node-hid').devices().map(d=>({vendorId:'0x'+d.vendorId?.toString(16),productId:'0x'+d.productId?.toString(16),product:d.product})))\"",
-    "list-midi": "node -e \"const e=require('easymidi');console.log('Inputs:',e.getInputs());console.log('Outputs:',e.getOutputs());\""
+    "list-midi": "node -e \"const e=require('easymidi');console.log('Inputs:',e.getInputs());console.log('Outputs:',e.getOutputs());\"",
+    "ws-bridge": "node ws-bridge.js 8787"
   },
   "dependencies": {
     "easymidi": "^3.0.1",
